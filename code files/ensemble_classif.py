@@ -1,16 +1,19 @@
-import numpy as np
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import nltk 
 import re
 import string
-from nltk.stem import SnowballStemmer
 from collections import Counter
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, f1_score,  precision_score, recall_score
-from sklearn import feature_extraction, model_selection, naive_bayes, metrics, svm
+from sklearn import feature_extraction, model_selection
+from sklearn import naive_bayes
 from sklearn.tree import DecisionTreeClassifier 
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer, TfidfVectorizer
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import AdaBoostClassifier
+from sklearn.ensemble import BaggingClassifier
+from sklearn.ensemble import VotingClassifier
+from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.utils import shuffle
 from nltk.corpus import stopwords 
 from nltk.tokenize import word_tokenize
@@ -21,17 +24,12 @@ warnings.filterwarnings("ignore")
 
 
 def dataset_prop(files):
-    c_dir = dict()
     fpath = files['path']
     ds = pd.read_csv(fpath)
-    shape = ds.shape
-    colmns = ds.columns
-    print("Shape : ", shape)
-    print("Columns : ", colmns)
+    print("Shape : ", ds.shape)
+    print("Columns : ", ds.columns)
     print("Head (5) : ", ds.head(5))
     print("Tail (5) : ", ds.tail(5))
-
-    count_Class=pd.value_counts(ds["spam"], sort= True)
 
     count1 = Counter(" ".join(ds[ds['spam']==0]["text"]).split()).most_common(20)
     df1 = pd.DataFrame.from_dict(count1)
@@ -39,17 +37,10 @@ def dataset_prop(files):
     count2 = Counter(" ".join(ds[ds['spam']==1]["text"]).split()).most_common(20)
     df2 = pd.DataFrame.from_dict(count2)
     df2 = df2.rename(columns={0: "words in spam", 1 : "count_"})
-    c_dir.update({
-        'Ham': count1,
-        'Spam': count2,
-        'Shape': shape,
-        'Columns': colmns,
-        'CClass': count_Class
-    })
-    return c_dir
-    
+    print("DF1 : ", df1, "\ncount : ", count1)
+    print("DF2 : ",df2,  "\ncount : ", count2)
 
-def model_assessment(u_classify, y_data, predicted_class):   
+def model_assessment(u_classify, y_data, predicted_class):
     mod_ass = dict()
     conf_mtrx = confusion_matrix(y_data,predicted_class)
     acc_score = accuracy_score(y_data,predicted_class)
@@ -69,21 +60,7 @@ def model_assessment(u_classify, y_data, predicted_class):
         "f1" : f1_scr
     })
     return mod_ass
-
-def tra_tt_split(files):
-    fpath = files['path']
-    datasets = pd.read_csv(fpath)
-    dsets = shuffle(datasets)
-    d_train, d_test, l_train, l_test = model_selection.train_test_split(datasets['text'],datasets['spam'],test_size=0.33, random_state=42)
-    s_dict = dict()
-    s_dict.update({
-        "d_train": d_train,
-        "d_test": d_test,
-        "l_train": l_train,
-        "l_test": l_test
-    })    
-    return s_dict
-
+ 
 def process_text(text):
     nopunc = [char for char in text if char not in string.punctuation]
     nopunc = ''.join(nopunc)
@@ -99,13 +76,9 @@ def features_transform(mail, dtrain, var1):
     print('sparsity: %.2f%%' % (100.0 * messages_bow.nnz / (messages_bow.shape[0] * messages_bow.shape[1])), '\n')
     tfidf_transformer = TfidfTransformer().fit(messages_bow)
     messages_tfidf = tfidf_transformer.transform(messages_bow)
-    if var1 in ["MNB", "SVM", "DecT", "KNC"]:
+    if var1 in ["RFC", "BAG", "ADA", "VOTE"]:
         sav_fit(vr1=bow.vocabulary_, var=var1)
     return messages_tfidf
-
-def sav_fit(vr1, var):
-    fname = 'vect'+str(var)+'.pkl'
-    dump(vr1,open(fname, 'wb'))
 
 def train_classifier(clf, f_train, l_train, typ):
     model = clf.fit(f_train, l_train)
@@ -113,8 +86,11 @@ def train_classifier(clf, f_train, l_train, typ):
     print("name : ",file)
     dump(model, open(file, 'wb'))
 
+def sav_fit(vr1, var):
+    fname = 'vect'+str(var)+'.pkl'
+    dump(vr1,open(fname, 'wb'))
 
-def Multi_NB(files, var):
+def rfc_classifier(files, var):
     res_df = list()
     fpath = files['path']
     datasets = pd.read_csv(fpath)
@@ -123,157 +99,19 @@ def Multi_NB(files, var):
     dsets = shuffle(datasets)
     if int(var) == 1:
         d_train, d_test, l_train, l_test = model_selection.train_test_split(datasets['text'],datasets['spam'],test_size=0.33, random_state=42)
-        dtrain_msg = features_transform(mail=d_train, dtrain=d_train, var1='MNB')
-        alp_dict = hp.MNB_class(files)
-        modelMNB = naive_bayes.MultinomialNB(alpha=alp_dict['alpha'])    
-        train_classifier(modelMNB, dtrain_msg, l_train, typ="MNB")
-        modelMNB.fit(dtrain_msg, l_train)
-        pred_train = modelMNB.predict(dtrain_msg)
-        mnb_dict = model_assessment(u_classify='MultiNB', y_data=l_train, predicted_class=pred_train)
-        return mnb_dict
-    elif int(var) == 2:
-        print("Inside testing phase : ")
-        d_test = dsets['text']    
-        modelMNB = load(open('MNB.pkl', 'rb'))
-        vect = load(open('vectMNB.pkl', 'rb'))
-        tf = TfidfTransformer()
-        load_vect = CountVectorizer(vocabulary=vect)
-        last = len(d_test)
-        for i in range(0, last):
-            if d_test.get(i) != None:
-                tup = [d_test[i],]
-                dtest_msg = tf.fit_transform(load_vect.fit_transform(tup))
-                pred = modelMNB.predict_proba(dtest_msg)
-                pred_test = modelMNB.predict(dtest_msg)
-                res_df.append((i+1, [pred[0][0], pred[0][1], pred_test[0]]))
-        df = pd.DataFrame.from_items(res_df, orient='index', columns=['Class O', 'Class 1', 'Result'])
-        print(df.head(20))
-        return df
-    else:
-        d_train, d_test, l_train, l_test = model_selection.train_test_split(datasets['text'],datasets['spam'],test_size=0.33, random_state=42)
-        modelMNB = load(open('MNB.pkl', 'rb'))
-        vect = load(open('vectMNB.pkl', 'rb'))
-        tf = TfidfTransformer()
-        load_vect = CountVectorizer(vocabulary=vect)
-        dtest_msg = tf.fit_transform(load_vect.fit_transform(d_test))
-        pred_test = modelMNB.predict(dtest_msg)
-        mnb_dict = model_assessment(u_classify='MultiNB', y_data=l_test, predicted_class=pred_test)
-        return mnb_dict
-        
-def SVM(files, var):
-    res_df = list()
-    fpath = files['path']
-    datasets = pd.read_csv(fpath)
-    datasets = datasets.dropna()
-    datasets.drop_duplicates(inplace=True)
-    dsets = shuffle(datasets)
-    if int(var) == 1:
-        d_train, d_test, l_train, l_test = model_selection.train_test_split(datasets['text'],datasets['spam'],test_size=0.33, random_state=42)
-        dtrain_msg = features_transform(mail=d_train, dtrain=d_train, var1='SVM')
-        krnl = hp.SVC_class(files)
-        model_svm=svm.SVC(kernel=krnl['kernel'], gamma=krnl['gamma'], probability=True)
-        train_classifier(model_svm, dtrain_msg, l_train, typ="SVM")
-        model_svm.fit(dtrain_msg, l_train)
-        pred_train = model_svm.predict(dtrain_msg)
-        mnb_dict = model_assessment(u_classify='SVM', y_data=l_train, predicted_class=pred_train)
-        return mnb_dict
-    elif int(var) == 2:
-        print("Inside testing phase : ")
-        d_test = dsets['text']   
-        model_svm = load(open('SVM.pkl', 'rb'))
-        vect = load(open('vectSVM.pkl', 'rb'))
-        tf = TfidfTransformer()
-        load_vect = CountVectorizer(vocabulary=vect)
-        last = len(d_test)
-        for i in range(0, last):
-            if d_test.get(i) != None:
-                tup = [d_test[i],]
-                dtest_msg = tf.fit_transform(load_vect.fit_transform(d_test))
-                pred_test = model_svm.predict(dtest_msg)        
-                pred = model_svm.predict_proba(dtest_msg)
-                res_df.append((i+1, [pred[0][0], pred[0][1], pred_test[0]]))
-        df = pd.DataFrame.from_items(res_df, orient='index', columns=['Class O', 'Class 1', 'Result'])
-        print(df.head(15))
-        return df
-    else:
-        d_train, d_test, l_train, l_test = model_selection.train_test_split(datasets['text'],datasets['spam'],test_size=0.33, random_state=42)
-        model_svm = load(open('SVM.pkl', 'rb'))
-        vect = load(open('vectSVM.pkl', 'rb'))
-        tf = TfidfTransformer()
-        load_vect = CountVectorizer(vocabulary=vect)
-        dtest_msg = tf.fit_transform(load_vect.fit_transform(d_test))
-        pred_test = model_svm.predict(dtest_msg)
-        mnb_dict = model_assessment(u_classify='SVM', y_data=l_test, predicted_class=pred_test)
-        return mnb_dict
-
-def D_Tree(files, var):
-    res_df = list()
-    fpath = files['path']
-    datasets = pd.read_csv(fpath)
-    datasets = datasets.dropna()
-    datasets.drop_duplicates(inplace=True)
-    dsets = shuffle(datasets)
-    if int(var) == 1:
-        d_train, d_test, l_train, l_test = model_selection.train_test_split(datasets['text'],datasets['spam'],test_size=0.33, random_state=42)
-        dtrain_msg = features_transform(mail=d_train, dtrain=d_train, var1='DecT')
-        mss = hp.DT_class(files)
-        model_dtree=DecisionTreeClassifier(min_samples_split=mss['min_samples'], random_state=111)
-        train_classifier(model_dtree, dtrain_msg, l_train, typ="DecT")
-        model_dtree.fit(dtrain_msg, l_train)
-        pred_train = model_dtree.predict(dtrain_msg)
-        mnb_dict = model_assessment(u_classify='Decision Tree', y_data=l_train, predicted_class=pred_train)
-        return mnb_dict    
-    elif int(var) == 2:    
-        print("Inside testing phase : ")
-        d_test = dsets['text']
-        model_dtree = load(open('DecT.pkl', 'rb'))
-        vect = load(open('vectDecT.pkl', 'rb'))
-        tf = TfidfTransformer()
-        load_vect = CountVectorizer(vocabulary=vect)
-        last = len(d_test)
-        for i in range(0, last):
-            if d_test.get(i) != None:
-                tup = [d_test[i],]
-                dtest_msg = tf.fit_transform(load_vect.fit_transform(tup))
-                pred_test = model_dtree.predict(dtest_msg)
-                pred =model_dtree.predict_proba(dtest_msg)
-                res_df.append((i+1, [pred[0][0], pred[0][1], pred_test[0]]))
-        df = pd.DataFrame.from_items(res_df, orient='index', columns=['Class O', 'Class 1', 'Result'])
-        print(df.head(15))
-        return df
-    else:
-        d_train, d_test, l_train, l_test = model_selection.train_test_split(datasets['text'],datasets['spam'],test_size=0.33, random_state=42)
-        model_dtree = load(open('DecT.pkl', 'rb'))
-        vect = load(open('vectDecT.pkl', 'rb'))
-        tf = TfidfTransformer()
-        load_vect = CountVectorizer(vocabulary=vect)
-        dtest_msg = tf.fit_transform(load_vect.fit_transform(d_test))
-        pred_test = model_dtree.predict(dtest_msg)
-        mnb_dict = model_assessment(u_classify='Decision Tree', y_data=l_test, predicted_class=pred_test)
-        return mnb_dict
-
-def KNC(files, var):
-    res_df = list()
-    fpath = files['path']
-    datasets = pd.read_csv(fpath)
-    datasets = datasets.dropna()
-    datasets.drop_duplicates(inplace=True)
-    dsets = shuffle(datasets)
-    if int(var) == 1:
-        d_train, d_test, l_train, l_test = model_selection.train_test_split(datasets['text'],datasets['spam'],test_size=0.33, random_state=42)
-        dtrain_msg = features_transform(mail=d_train, dtrain=d_train, var1='KNC')
-        n_neigh = hp.KNN_class(files)
-        knc = KNeighborsClassifier(n_neighbors=n_neigh['n_neighbors']) 
-        train_classifier(knc, dtrain_msg, l_train, typ="KNC")
-        knc.fit(dtrain_msg, l_train)
-        pred_train = knc.predict(dtrain_msg)
-        mnb_dict = model_assessment(u_classify='K-Nearest Neighbor', y_data=l_train, predicted_class=pred_train)
+        dtrain_msg = features_transform(mail=d_train, dtrain=d_train, var1='RFC')
+        n_est = hp.RFC_class(files)
+        model_rf=RandomForestClassifier(n_estimators=n_est['n_trees'],criterion='entropy', random_state=111)
+        train_classifier(model_rf, dtrain_msg, l_train, typ="RFC")
+        model_rf.fit(dtrain_msg, l_train)
+        pred_train = model_rf.predict(dtrain_msg)
+        mnb_dict = model_assessment(u_classify='Random Forest', y_data=l_train, predicted_class=pred_train)
         return mnb_dict
     elif int(var) == 2:
         print("Inside testing phase : ")
         d_test = dsets['text']         
-        knc = load(open('KNC.pkl', 'rb'))
-        vect = load(open('vectKNC.pkl', 'rb'))
+        model_rf = load(open('pickle_files/RFC.pkl', 'rb'))
+        vect = load(open('pickle_files/vectRFC.pkl', 'rb'))
         tf = TfidfTransformer()
         load_vect = CountVectorizer(vocabulary=vect)
         last = len(d_test)
@@ -281,43 +119,190 @@ def KNC(files, var):
             if d_test.get(i) != None:
                 tup = [d_test[i],]
                 dtest_msg = tf.fit_transform(load_vect.fit_transform(tup))
-                pred_test = knc.predict(dtest_msg)
-                pred = knc.predict_proba(dtest_msg)
+                pred_test = model_rf.predict(dtest_msg)
+                pred = model_rf.predict_proba(dtest_msg)
                 res_df.append((i+1, [pred[0][0], pred[0][1], pred_test[0]]))
         df = pd.DataFrame.from_items(res_df, orient='index', columns=['Class O', 'Class 1', 'Result'])
         print(df.head(15))
         return df
     else:
         d_train, d_test, l_train, l_test = model_selection.train_test_split(datasets['text'],datasets['spam'],test_size=0.33, random_state=42)
-        knc = load(open('KNC.pkl', 'rb'))
-        vect = load(open('vectKNC.pkl', 'rb'))
+        model_rf = load(open('pickle_files/RFC.pkl', 'rb'))
+        vect = load(open('pickle_files/vectRFC.pkl', 'rb'))
         tf = TfidfTransformer()
         load_vect = CountVectorizer(vocabulary=vect)
         dtest_msg = tf.fit_transform(load_vect.fit_transform(d_test))
-        pred_test = knc.predict(dtest_msg)
-        mnb_dict = model_assessment(u_classify='K-Nearest Neighbor', y_data=l_test, predicted_class=pred_test)
+        pred_test = model_rf.predict(dtest_msg)
+        mnb_dict = model_assessment(u_classify='Random Forest', y_data=l_test, predicted_class=pred_test)
         return mnb_dict
 
+def bagging_classifier(files, var):
+    res_df = list()
+    fpath = files['path']
+    datasets = pd.read_csv(fpath)
+    datasets = datasets.dropna()
+    datasets.drop_duplicates(inplace=True)
+    dsets = shuffle(datasets)
+    if int(var) == 1:
+        d_train, d_test, l_train, l_test = model_selection.train_test_split(datasets['text'],datasets['spam'],test_size=0.33, random_state=42)
+        dtrain_msg = features_transform(mail=d_train, dtrain=d_train, var1='BAG')
+        n_est = hp.BAG_class(files)
+        bag_class =  BaggingClassifier(n_estimators=n_est['n_classifiers'], random_state=111)
+        train_classifier(bag_class, dtrain_msg, l_train, typ="BAG")
+        bag_class.fit(dtrain_msg, l_train)
+        pred_train = bag_class.predict(dtrain_msg)
+        mnb_dict = model_assessment(u_classify='Bagging', y_data=l_train, predicted_class=pred_train)
+        return mnb_dict
+    elif int(var) == 2:
+        print("Inside testing phase : ")
+        d_test = dsets['text']         
+        bag_class = load(open('pickle_files/BAG.pkl', 'rb'))
+        vect = load(open('pickle_files/vectBAG.pkl', 'rb'))
+        tf = TfidfTransformer()
+        load_vect = CountVectorizer(vocabulary=vect)
+        last = len(d_test)
+        for i in range(0, last):
+            if d_test.get(i) != None:
+                tup = [d_test[i],]
+                dtest_msg = tf.fit_transform(load_vect.fit_transform(tup))
+                pred_test = bag_class.predict(dtest_msg)
+                pred = bag_class.predict_proba(dtest_msg)
+                res_df.append((i+1, [pred[0][0], pred[0][1], pred_test[0]]))
+        df = pd.DataFrame.from_items(res_df, orient='index', columns=['Class O', 'Class 1', 'Result'])
+        print(df.head(15))
+        return df
+    else:
+        d_train, d_test, l_train, l_test = model_selection.train_test_split(datasets['text'],datasets['spam'],test_size=0.33, random_state=42)
+        bag_class = load(open('pickle_files/BAG.pkl', 'rb'))
+        vect = load(open('pickle_files/vectBAG.pkl', 'rb'))
+        tf = TfidfTransformer()
+        load_vect = CountVectorizer(vocabulary=vect)
+        dtest_msg = tf.fit_transform(load_vect.fit_transform(d_test))
+        pred_test = bag_class.predict(dtest_msg)
+        mnb_dict = model_assessment(u_classify='Bagging EM', y_data=l_test, predicted_class=pred_test)
+        return mnb_dict
+
+def adaB_classifier(files, var):
+    res_df = list()
+    fpath = files['path']
+    datasets = pd.read_csv(fpath)
+    datasets = datasets.dropna()
+    datasets.drop_duplicates(inplace=True)
+    dsets = shuffle(datasets)
+    if int(var) == 1:
+        d_train, d_test, l_train, l_test = model_selection.train_test_split(datasets['text'],datasets['spam'],test_size=0.33, random_state=42)
+        dtrain_msg = features_transform(mail=d_train, dtrain=d_train, var1='ADA')
+        n_est = hp.AB_class(files)
+        ada_class = AdaBoostClassifier(DecisionTreeClassifier(max_depth=1), n_estimators=n_est['n_classifiers'], random_state=111)
+        train_classifier(ada_class, dtrain_msg, l_train, typ="ADA")
+        ada_class.fit(dtrain_msg, l_train)
+        pred_train = ada_class.predict(dtrain_msg)
+        mnb_dict = model_assessment(u_classify='AdaBoosting EM', y_data=l_train, predicted_class=pred_train)
+        return mnb_dict
+    elif int(var) == 2:
+        print("Inside training phase : ")
+        d_test = dsets['text']       
+        ada_class = load(open('pickle_files/ADA.pkl', 'rb'))
+        vect = load(open('pickle_files/vectADA.pkl', 'rb'))
+        tf = TfidfTransformer()
+        load_vect = CountVectorizer(vocabulary=vect)
+        last = len(d_test)
+        for i in range(0, last):
+            if d_test.get(i) != None:
+                tup = [d_test[i],]
+                dtest_msg = tf.fit_transform(load_vect.fit_transform(tup))
+                pred_test = ada_class.predict(dtest_msg)
+                pred = ada_class.predict_proba(dtest_msg)
+                res_df.append((i+1, [pred[0][0], pred[0][1], pred_test[0]]))
+        df = pd.DataFrame.from_items(res_df, orient='index', columns=['Class O', 'Class 1', 'Result'])
+        print(df.head(15))
+        return df
+    else:
+        d_train, d_test, l_train, l_test = model_selection.train_test_split(datasets['text'],datasets['spam'],test_size=0.33, random_state=42)
+        ada_class = load(open('pickle_files/ADA.pkl', 'rb'))
+        vect = load(open('pickle_files/vectADA.pkl', 'rb'))
+        tf = TfidfTransformer()
+        load_vect = CountVectorizer(vocabulary=vect)
+        dtest_msg = tf.fit_transform(load_vect.fit_transform(d_test))
+        pred_test = ada_class.predict(dtest_msg)
+        mnb_dict = model_assessment(u_classify='AdaBoosting EM', y_data=l_test, predicted_class=pred_test)
+        return mnb_dict
+
+def voting_classifier(files, var):
+    res_df = list()
+    fpath = files['path']
+    datasets = pd.read_csv(fpath)
+    datasets = datasets.dropna()
+    datasets.drop_duplicates(inplace=True)
+    dsets = shuffle(datasets)
+    if int(var) == 1:
+        d_train, d_test, l_train, l_test = model_selection.train_test_split(datasets['text'],datasets['spam'],test_size=0.33, random_state=42)
+        dtrain_msg = features_transform(mail=d_train, dtrain=d_train, var1='VOTE')
+        n_est1 = hp.BAG_class(files)
+        n_est2 = hp.RFC_class(files)
+        n_est3 = hp.AB_class(files)
+        alp_dict = hp.MNB_class(files)
+        bag_class =  BaggingClassifier(n_estimators=100)
+        model_rf=RandomForestClassifier(n_estimators=20,criterion='entropy')
+        ada_class = AdaBoostClassifier(DecisionTreeClassifier(max_depth=1), n_estimators=62)
+        modelMNB = naive_bayes.MultinomialNB()
+        eclf = VotingClassifier(estimators=[('BgC', bag_class), ('RF', model_rf), ('Ada', ada_class), ('MNB', modelMNB) ], voting='soft')
+        train_classifier(eclf, dtrain_msg, l_train, typ="VOTE")
+        eclf.fit(dtrain_msg, l_train)
+        pred_train = eclf.predict(dtrain_msg)
+        mnb_dict = model_assessment(u_classify='Voting EM', y_data=l_train, predicted_class=pred_train)
+        return mnb_dict
+    elif int(var) == 2:
+        print("Inside training phase : ")
+        d_test = dsets['text']
+        eclf = load(open('pickle_files/VOTE.pkl', 'rb'))
+        vect = load(open('pickle_files/vectVOTE.pkl', 'rb'))
+        tf = TfidfTransformer()
+        load_vect = CountVectorizer(vocabulary=vect)
+        last = len(d_test)
+        for i in range(0, last):
+            if d_test.get(i) != None:
+                tup = [d_test[i],]
+                dtest_msg = tf.fit_transform(load_vect.fit_transform(tup))
+                pred_test = eclf.predict(dtest_msg)
+                pred = eclf.predict_proba(dtest_msg)
+                res_df.append((i+1, [pred[0][0], pred[0][1], pred_test[0]]))
+        df = pd.DataFrame.from_items(res_df, orient='index', columns=['Class O', 'Class 1', 'Result'])
+        print(df.head(15))
+        return df
+    else:
+        d_train, d_test, l_train, l_test = model_selection.train_test_split(datasets['text'],datasets['spam'],test_size=0.33, random_state=42)
+        eclf = load(open('pickle_files/VOTE.pkl', 'rb'))
+        vect = load(open('pickle_files/vectVOTE.pkl', 'rb'))
+        tf = TfidfTransformer()
+        load_vect = CountVectorizer(vocabulary=vect)
+        dtest_msg = tf.fit_transform(load_vect.fit_transform(d_test))
+        pred_test = eclf.predict(dtest_msg)
+        mnb_dict = model_assessment(u_classify='Voting EM', y_data=l_test, predicted_class=pred_test)
+        return mnb_dict
 
 def menu(files):
     menu = '''
-                Basic Classifiers : 
+                Ensemble Classifiers : 
             ---------------------------
 
-            1. MultiNomial Naive Bayes
-            2. Support Vector Machine
-            3. Decision Tree (criteria : 'gini'/'entropy')
-            4. KNN Classifier
+            1. Random Forest Classifier 
+            2. Bagging Classifier
+            3. AdaBoosting Classifier
+            4. Voting Classifier
+
 
            '''
     print(menu)
-    print("\n\Basic Classifiers training......")
-    print("\Multinomial Naive Bayes Classifier Training.....")
-    #Multi_NB(files, 1)
-    print("\Support Vector Classifier Training.....")
-    #SVM(files, 1)
-    print("\Decision Tree Classifier Training.....")
-    D_Tree(files, 1)
-    print("\KNN Classifier Training.....")
-    KNC(files, 1)
+    print("\n\nEnsemble Classifiers training......")
+    print("\nRandom Forest Classifier Training.....")
+    rfc_classifier(files, 1)
+    print("\nBagging Classifier Training.....")
+    bagging_classifier(files, 1)
+    print("\nAdaBoost Classifier Training.....")
+    adaB_classifier(files, 1)
+    print("\nVoting Classifier Training.....")
+    voting_classifier(files, 1)
+
+
 

@@ -1,7 +1,8 @@
-import tkinter
-import numpy as np
+from tkinter import *
+# import tkinter
+# import numpy as np
 from tkinter.filedialog import *
-from tkinter import ttk
+# from tkinter import ttk
 import tkinter.messagebox
 import sys
 import os
@@ -561,7 +562,7 @@ def SVM_f(var):
         l39.grid(row=1)
 
     elif int(var) == 2:
-        r2 = bc.Multi_NB(f_dir, 2)
+        r2 = bc.SVM(f_dir, 2)
         print("Val : ",r2)
         print("\ntype : ",type(r2))
         dic = {0: 'Ham', 1: 'Spam'}
@@ -577,7 +578,8 @@ def SVM_f(var):
         
         pt.show()
     else:
-        print("3")
+        r3 = bc.SVM(f_dir, 3)
+        print("3: ", r3)
 
 def KNN_f(var):
     if int(var) == 1:
@@ -674,7 +676,7 @@ def KNN_f(var):
         l39.grid(row=1)
     
     elif int(var) == 2:
-        r2 = bc.Multi_NB(f_dir, 2)
+        r2 = bc.KNC(f_dir, 2)
         print("Val : ",r2)
         print("\ntype : ",type(r2))
         dic = {0: 'Ham', 1: 'Spam'}
@@ -690,7 +692,8 @@ def KNN_f(var):
         pt.show()
 
     else:
-        print("3")
+        r3 = bc.KNC(f_dir, 3)
+        print("3: ", r3)
 
 def DTree_f(var):
     if int(var) == 1:
@@ -787,7 +790,7 @@ def DTree_f(var):
         l39.grid(row=1)
     
     elif int(var) == 2:
-        r2 = bc.Multi_NB(f_dir, 2)
+        r2 = bc.D_Tree(f_dir, 2)
         print("Val : ",r2)
         print("\ntype : ",type(r2))
         dic = {0: 'Ham', 1: 'Spam'}
@@ -803,7 +806,8 @@ def DTree_f(var):
         pt.show()
 
     else:
-        print("3")
+        r3 = bc.D_Tree(f_dir, 3)
+        print("3: ", r3)
 
 def RFC_f(var):
     if int(var) == 1:
@@ -916,7 +920,8 @@ def RFC_f(var):
         pt.show()
 
     else:
-        print("3")
+        r3 = em.rfc_classifier(f_dir, 3)
+        print("3: ", r3)
 
 def Bag_f(var):
     if int(var) == 1:
@@ -1029,7 +1034,8 @@ def Bag_f(var):
         pt.show()
 
     else:
-        print("3")
+        r3 = em.bagging_classifier(f_dir, 3)
+        print("3: ", r3)
 
 def Ada_f(var):
     if int(var) == 1:
@@ -1142,7 +1148,8 @@ def Ada_f(var):
         pt.show()
 
     else:
-        print("3")
+        r3 = em.adaB_classifier(f_dir, 3)
+        print("3: ", r3)
 
 def Vote_f(var):
     if int(var) == 1:
@@ -1255,7 +1262,8 @@ def Vote_f(var):
         pt.show()
 
     else:
-        print("3")
+        r3 = em.voting_classifier(f_dir, 3)
+        print("3: ", r3)
 
 
 def compared1():

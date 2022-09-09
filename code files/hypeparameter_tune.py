@@ -35,7 +35,7 @@ def SVC_class(files):
     datasets = pd.read_csv(fpath)
     text_feat = datasets['text'].copy()
     text_feat = text_feat.apply(process_text)
-    vectorizer = TfidfVectorizer("english")
+    vectorizer = TfidfVectorizer(stop_words="english")
     features = vectorizer.fit_transform(text_feat)
     features_train, features_test, labels_train, labels_test = train_test_split(features, datasets['spam'], test_size=0.3, random_state=111)
     
@@ -73,7 +73,7 @@ def MNB_class(files):
     datasets = pd.read_csv(fpath)
     text_feat = datasets['text'].copy()
     text_feat = text_feat.apply(process_text)
-    vectorizer = TfidfVectorizer("english")
+    vectorizer = TfidfVectorizer(stop_words="english")
     features = vectorizer.fit_transform(text_feat)
     features_train, features_test, labels_train, labels_test = train_test_split(features, datasets['spam'], test_size=0.3, random_state=111)
     
@@ -107,7 +107,7 @@ def DT_class(files):
     datasets = pd.read_csv(fpath)
     text_feat = datasets['text'].copy()
     text_feat = text_feat.apply(process_text)
-    vectorizer = TfidfVectorizer("english")
+    vectorizer = TfidfVectorizer(stop_words="english")
     features = vectorizer.fit_transform(text_feat)
     features_train, features_test, labels_train, labels_test = train_test_split(features, datasets['spam'], test_size=0.3, random_state=111)
     
@@ -141,7 +141,7 @@ def KNN_class(files):
     datasets = pd.read_csv(fpath)
     text_feat = datasets['text'].copy()
     text_feat = text_feat.apply(process_text)
-    vectorizer = TfidfVectorizer("english")
+    vectorizer = TfidfVectorizer(stop_words="english")
     features = vectorizer.fit_transform(text_feat)
     features_train, features_test, labels_train, labels_test = train_test_split(features, datasets['spam'], test_size=0.3, random_state=111)
     
@@ -175,7 +175,7 @@ def RFC_class(files):
     datasets = pd.read_csv(fpath)
     text_feat = datasets['text'].copy()
     text_feat = text_feat.apply(process_text)
-    vectorizer = TfidfVectorizer("english")
+    vectorizer = TfidfVectorizer(stop_words="english")
     features = vectorizer.fit_transform(text_feat)
     features_train, features_test, labels_train, labels_test = train_test_split(features, datasets['spam'], test_size=0.3, random_state=111)
     
@@ -209,7 +209,7 @@ def AB_class(files):
     datasets = pd.read_csv(fpath)
     text_feat = datasets['text'].copy()
     text_feat = text_feat.apply(process_text)
-    vectorizer = TfidfVectorizer("english")
+    vectorizer = TfidfVectorizer(stop_words="english")
     features = vectorizer.fit_transform(text_feat)
     features_train, features_test, labels_train, labels_test = train_test_split(features, datasets['spam'], test_size=0.3, random_state=111)
 
@@ -243,7 +243,7 @@ def BAG_class(files):
     datasets = pd.read_csv(fpath)
     text_feat = datasets['text'].copy()
     text_feat = text_feat.apply(process_text)
-    vectorizer = TfidfVectorizer("english")
+    vectorizer = TfidfVectorizer(stop_words="english")
     features = vectorizer.fit_transform(text_feat)
     features_train, features_test, labels_train, labels_test = train_test_split(features, datasets['spam'], test_size=0.3, random_state=111)
 
