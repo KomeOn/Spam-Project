@@ -38,9 +38,18 @@ IDE used: VScdoe
 Note:
       1. Datasets for this project is in **_"datasets"_** folder.
 
+## Running project images:
+
+![GUI](https://github.com/KomeOn/Spam-Project/blob/master/images/front.png)
+
+![Dataset](https://github.com/KomeOn/Spam-Project/blob/master/images/dataset.png)
+
+![Result](https://github.com/KomeOn/Spam-Project/blob/master/images/result.png)
+
 ## Developers
 
 This repository contains the code for our BTech Major Project "Spam Detection using Machine Learning Algorithms".
-Code contirbution: 1. Sanket Sonowal 2. Nikhil Kumar 3. Nishant.
-
-## 
+Code contirbution: 
+1. [Sanket Sonowal](https://github.com/KomeOn)
+2. [Nikhil Kumar](https://github.com/nikhilkmr445)
+3. [Nishant](https://github.com/RaoNickE)
