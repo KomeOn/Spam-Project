@@ -55,14 +55,19 @@ Note:
 
 ## Running project images:
 
+### **GUI of the Classifier software**
+
 ![GUI](https://github.com/KomeOn/Spam-Project/blob/master/images/front.png)
-*GUI of the Classifier software*
+
+### **Data in the sample file emails.csv**
 
 ![Dataset](https://github.com/KomeOn/Spam-Project/blob/master/images/dataset.png)
-*Data in the sample file **emails.csv***
+
+
+### **Result of all the classifiers**
 
 ![Result](https://github.com/KomeOn/Spam-Project/blob/master/images/result.png)
-*Result of all the classifiers*
+
 
 
 ---
